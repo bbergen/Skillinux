@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.bryanbergen.Skillinux.Entities.API;
+import net.bryanbergen.Skillinux.Entities.EveCharacter;
 import net.bryanbergen.Skillinux.Util.CalendarUtil;
 
 public class DatabaseConnection {
@@ -20,7 +21,7 @@ public class DatabaseConnection {
     private static final String DRIVER = "oracle.jdbc.driver.OracleDriver";
 
     private static DatabaseConnection instance;
-    private Logger log = Logger.getLogger(getClass().getName());
+    private static final Logger log = Logger.getLogger(DatabaseConnection.class.getName());
     private Connection con;
     private PreparedStatement s;
     private ResultSet rs;
@@ -120,5 +121,55 @@ public class DatabaseConnection {
             close();
         }
         return keys;
+    }
+    
+    /**
+     * Saves an <code>EveCharacter</code> to the database<br>
+     * Tied <code>API</code> must already exist in the database
+     * prior to saving the character. 
+     * 
+     * @param character The character to save.
+     */
+    public void saveCharacter(EveCharacter character) {
+        connect();
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT INTO characters (characterid, name)");
+        sql.append("VALUES (");
+        sql.append("?, ?").append(")");
+        
+        try {
+            s = con.prepareStatement(sql.toString());
+            s.setLong(1, character.getCharacterID());
+            s.setString(2, character.getName());
+            s.execute();
+            con.commit();
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        } finally {
+            close();
+        }
+        updateAPIExposure(character.getCharacterID(), character.getApi().getKeyID());
+    }
+    
+    private void updateAPIExposure(long characterID, long keyID) {
+        connect();
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT INTO key_exposures (characterid, apiid)");
+        sql.append("VALUES (");
+        sql.append("?, ?").append(")");
+        
+        try {
+            s = con.prepareStatement(sql.toString());
+            s.setLong(1, characterID);
+            s.setLong(2, keyID);
+            s.execute();
+            con.commit();
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        } finally {
+            close();
+        }
     }
 }

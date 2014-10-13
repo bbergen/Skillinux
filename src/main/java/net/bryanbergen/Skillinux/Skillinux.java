@@ -1,17 +1,14 @@
 package net.bryanbergen.Skillinux;
 
-import java.util.List;
 import net.bryanbergen.Skillinux.Database.DatabaseConnection;
-import net.bryanbergen.Skillinux.Entities.API;
+import net.bryanbergen.Skillinux.Entities.DemoAPI;
+import net.bryanbergen.Skillinux.Entities.DemoCharacter;
 
 public class Skillinux {
 
     public static void main(String[] args) {
 
-        List<API> keys = DatabaseConnection.getInstance().loadAPIs();
-        
-        for (API key : keys) {
-            System.out.println(key);
-        }
+        DatabaseConnection.getInstance().saveAPI(new DemoAPI());
+        DatabaseConnection.getInstance().saveCharacter(new DemoCharacter());
     }
 }

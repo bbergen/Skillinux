@@ -1,5 +1,7 @@
 package net.bryanbergen.Skillinux.Entities;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 public class EveCharacter {
 
     private String name;
@@ -38,5 +40,33 @@ public class EveCharacter {
 
     public void setCharacterID(long characterID) {
         this.characterID = characterID;
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        } else if (!(o instanceof EveCharacter)) {
+            return false;
+        } else if (o == this) {
+            return true;
+        }
+        EveCharacter c = (EveCharacter)o;
+        
+        if (!c.getName().equals(this.name)) {
+            return false;
+        } else if (c.getCharacterID() != this.characterID) {
+            return false;
+        } else {
+            return c.getApi().equals(this.api);
+        }
+    }
+    
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17,31).
+                append(name).
+                append(characterID).
+                append(api).toHashCode();
     }
 }
