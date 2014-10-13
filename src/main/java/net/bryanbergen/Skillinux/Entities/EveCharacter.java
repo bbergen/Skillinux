@@ -7,7 +7,13 @@ public class EveCharacter {
     private long characterID;
     
     public EveCharacter() {
-        
+        this(null, null, -1);
+    }
+    
+    public EveCharacter(String name, API api, long characterID) {
+        this.name = name;
+        this.api = api;
+        this.characterID = characterID;
     }
 
     public String getName() {
