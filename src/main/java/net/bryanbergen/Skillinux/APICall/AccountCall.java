@@ -11,16 +11,29 @@ package net.bryanbergen.Skillinux.APICall;
  */
 public enum AccountCall {
     
-    AccountStatus("Account/AccountStatus"),
-    APIKeyInfo("Account/APIKeyInfo"),
-    Characters("Account/Characters");
+    AccountStatus("Account/AccountStatus", 33554432L, "Basic account information."),
+    APIKeyInfo("Account/APIKeyInfo", 0L, "Information about API and characters exposed by it."),
+    Characters("Account/Characters", 0L, "Returns a list of all characters on an account");
     
     private final String url;
-    private AccountCall(String url) {
+    private final String description;
+    private final long accessMask;
+    
+    private AccountCall(String url, long accessMask, String description) {
         this.url = url;
+        this.description = description;
+        this.accessMask = accessMask;
     }
     
     public String getUrl() {
         return url;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public long getAccessMask() {
+        return accessMask;
     }
 }
