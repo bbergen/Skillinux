@@ -263,17 +263,75 @@ public class DatabaseConnection {
         return loadAPI(keyID);
     }
     
+    /**
+     * Fetches a list of all saved Characters exposed by an API Key
+     * 
+     * @param api the key to check for exposed characters
+     * @return List of <code>EveCharacter</code> objects representing exposed characters
+     */
     public List<EveCharacter> loadCharactersExposedBy(API api) {
+        connect();
         List<EveCharacter> characters = new ArrayList<EveCharacter>();
-        //TODO query logic
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT c.name, characterid\n");
+        sql.append("FROM key_exposures e INNER JOIN characters c\n");
+        sql.append("USING(characterid)\n");
+        sql.append("WHERE e.apiid = ?\n");
         
+        try {
+            s = con.prepareStatement(sql.toString());
+            s.setLong(1, api.getKeyID());
+            rs = s.executeQuery();
+            while(rs.next()) {
+                EveCharacter c = new EveCharacter();
+                c.setName(rs.getString(1));
+                c.setCharacterID(rs.getLong(2));
+                c.setApi(api);
+                characters.add(c);
+            }
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        } finally {
+            close();
+        }
         return characters;
     }
     
+    /**
+     * Fetches a list of all API keys that expose a particular character.
+     * 
+     * @param characterID ID of the <code>EveCharacter</code> exposed
+     * @return All keys exposing the <code>EveCharacter</code>
+     */
     public List<API> loadAPIsExposing(long characterID) {
+        connect();
         List<API> keys = new ArrayList<API>();
-        //TODO query logic
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT k.keyid, k.vcode, k.accessmask, k.expiry\n");
+        sql.append("FROM key_exposures e, keys k\n");
+        sql.append("WHERE e.apiid = k.keyid\n");
+        sql.append("AND e.characterid = ?\n");
         
+        try {
+            s = con.prepareStatement(sql.toString());
+            s.setLong(1, characterID);
+            rs = s.executeQuery();
+            
+            while (rs.next()) {
+                API key = new API();
+                key.setKeyID(rs.getLong(1));
+                key.setvCode(rs.getString(2));
+                key.setAccessMask(rs.getLong(3));
+                key.setExpiry(CalendarUtil.getCalendarFromSQLDate(rs.getDate(4)));
+                keys.add(key);
+            }
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        } finally {
+            close();
+        }
         return keys;
     }
 }
