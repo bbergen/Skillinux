@@ -69,4 +69,13 @@ public class EveCharacter {
                 append(characterID).
                 append(api).toHashCode();
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append("Name=").append(name);
+        s.append(", CharacterID=").append(characterID);
+        s.append(",\nAPI=").append(api);
+        return s.toString();
+    }
 }
