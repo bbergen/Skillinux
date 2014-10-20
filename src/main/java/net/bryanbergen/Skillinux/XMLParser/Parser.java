@@ -25,12 +25,13 @@ public class Parser {
     private static final String SERVER_OPEN = "serverOpen";
     private static final String BALANCE = "balance";
     private static final String CACHE_TIME = "cacheTime";
-    private static final String CURRENT_TIME = "currentTime";
     
     private final ApiCall caller = ApiCall.getInstance();
     private API api;
     private EveCharacter character;
-    private Map<String, String> serverQueryResults;
+    private Map<String, String> serverResultCache;
+    private Map<String, String> characterResultCache;
+    private Map<String, String> accountResultCache;
     private boolean serverStatusCached;
     
     public Parser() {
@@ -117,10 +118,10 @@ public class Parser {
      * @return True if Tranquility is online, false otherwise. 
      */
     public boolean isTranquilityOnline() {
-        if (updateServerQueryCache()) {
+        if (updateServerCache(serverResultCache, ServerCall.ServerStatus)) {
             cacheServerStatus();
         }
-        return Boolean.valueOf(serverQueryResults.get(SERVER_OPEN));
+        return Boolean.valueOf(serverResultCache.get(SERVER_OPEN));
     }
     
     /**
@@ -129,10 +130,10 @@ public class Parser {
      * @return Number of players online on Tranquility.
      */
     public int getActivePlayerCount() {
-        if (updateServerQueryCache()) {
+        if (updateServerCache(serverResultCache, ServerCall.ServerStatus)) {
             cacheServerStatus();
         }
-        return Integer.parseInt(serverQueryResults.get(ONLINE_PLAYERS));
+        return Integer.parseInt(serverResultCache.get(ONLINE_PLAYERS));
     }
     
     private void cacheServerStatus() {
@@ -141,19 +142,41 @@ public class Parser {
         Node playerCount = getNodeByName(nodes, ONLINE_PLAYERS);
         Node serverOpen = getNodeByName(nodes, SERVER_OPEN);
         
-        if (serverQueryResults == null) {
-            serverQueryResults = new HashMap<String, String>();
+        if (serverResultCache == null) {
+            serverResultCache = new HashMap<String, String>();
         }
         
-        serverQueryResults.put(CURRENT_TIME, Calendar.getInstance().getTimeInMillis() + "");
-        serverQueryResults.put(ONLINE_PLAYERS, playerCount.getLastChild().getTextContent());
-        serverQueryResults.put(SERVER_OPEN, serverOpen.getLastChild().getTextContent());
+        serverResultCache.put(CACHE_TIME, System.currentTimeMillis() + "");
+        serverResultCache.put(ONLINE_PLAYERS, playerCount.getLastChild().getTextContent());
+        serverResultCache.put(SERVER_OPEN, serverOpen.getLastChild().getTextContent());
         serverStatusCached = true;
     }
     
-    private boolean updateServerQueryCache() {
-        //TODO Flesh this out so it tracks the time the query was cached, and checks if it should be refreshed.
-        return !serverStatusCached;
+    private boolean updateServerCache(Map<String, String> cache, ServerCall callType) {
+        if (cache == null) {
+            return true;
+        }
+        long lastCache = Long.parseLong(cache.get(CACHE_TIME));
+        long now = System.currentTimeMillis();
+        return now - lastCache > callType.getCacheTime();
+    }
+    
+    private boolean refreshCharacterCache(Map<String, String> cache, CharacterCall callType) {
+        if (cache == null) {
+            return true;
+        }
+        long lastCache = Long.parseLong(cache.get(CACHE_TIME));
+        long now = System.currentTimeMillis();
+        return now - lastCache > callType.getCacheTime();
+    }
+    
+    private boolean refreshAccountCache(Map<String, String> cache, AccountCall callType) {
+        if (cache == null) {
+            return true;
+        }
+        long lastCache = Long.parseLong(cache.get(CACHE_TIME));
+        long now = System.currentTimeMillis();
+        return now - lastCache > callType.getCacheTime();
     }
     
     /**

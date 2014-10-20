@@ -11,14 +11,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.bryanbergen.Skillinux.Entities.API;
 import net.bryanbergen.Skillinux.Entities.EveCharacter;
+import net.bryanbergen.Skillinux.Entities.Skill;
 import net.bryanbergen.Skillinux.Util.CalendarUtil;
 
 public class DatabaseConnection {
 
     private static final String USER_NAME = "skillinux";
     private static final String PASSWORD = "skillinux";
-    private static final String HOST =  "jdbc:oracle:thin:@192.168.1.2:1521:xe";
-    private static final String DRIVER = "oracle.jdbc.driver.OracleDriver";
+//    private static final String HOST_ORACLE =  "jdbc:oracle:thin:@192.168.1.2:1521:xe";
+    private static final String HOST_MYSQL = "jdbc:mysql://localhost/skx";
+//    private static final String DRIVER_ORACLE = "oracle.jdbc.driver.OracleDriver";
+    private static final String DRIVER_MYSQL = "com.mysql.jdbc.Driver";
 
     private static DatabaseConnection instance;
     private static final Logger log = Logger.getLogger(DatabaseConnection.class.getName());
@@ -40,10 +43,10 @@ public class DatabaseConnection {
     private DatabaseConnection() {
     }
     
-    private void connect() {
+    public void connect() {
         try { 
-            Class.forName(DRIVER);
-            con = DriverManager.getConnection(HOST, USER_NAME, PASSWORD);
+            Class.forName(DRIVER_MYSQL);
+            con = DriverManager.getConnection(HOST_MYSQL, USER_NAME, PASSWORD);
         } catch (SQLException e ) {
             log.log(Level.SEVERE, "Database Connection Failed");
         } catch (ClassNotFoundException e) {
@@ -68,6 +71,33 @@ public class DatabaseConnection {
         return rs;
     }
     
+    public Skill getSkill(int typeID) {
+        Skill skill = new Skill();
+        connect();
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT *\n");
+        sql.append("FROM skills\n");
+        sql.append("WHERE typeID = ?");
+        
+        try {
+            s = con.prepareStatement(sql.toString());
+            s.setInt(1, typeID);
+            rs = s.executeQuery();
+            
+            rs.next();
+            skill.setTypeID(rs.getInt(1));
+            skill.setName(rs.getString(2));
+            skill.setDescription(rs.getString(3));
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        } finally {
+            close();
+        }
+        
+        return skill;
+    }
+    
     /**
      * Saves an <code>API</code> key into the database.
      * 
@@ -77,7 +107,7 @@ public class DatabaseConnection {
         connect();
 
         StringBuilder sql = new StringBuilder();
-        sql.append("INSERT INTO keys (keyid, vcode, accessmask, expiry)\n");
+        sql.append("INSERT INTO apiKeys (keyid, vcode, accessmask, expiry)\n");
         sql.append("VALUES (");
         sql.append("?, ?, ?, ?");
         sql.append(")");
@@ -89,7 +119,6 @@ public class DatabaseConnection {
             s.setLong(3, api.getAccessMask());
             s.setDate(4, CalendarUtil.getSQLDate(api.getExpiry()));
             s.execute();
-            con.commit();
         } catch (SQLException e) {
             log.log(Level.SEVERE, e.getMessage());
         } finally {
@@ -106,7 +135,7 @@ public class DatabaseConnection {
         List<API> keys = new ArrayList<API>();
         
         try {
-            rs = quickExecute("SELECT * FROM keys");
+            rs = quickExecute("SELECT * FROM apiKeys");
             while(rs.next()) {
                 API key = new API();
                 key.setKeyID(rs.getLong(1));
@@ -133,7 +162,7 @@ public class DatabaseConnection {
         API api = new API();
 
         StringBuilder sql = new StringBuilder();
-        sql.append("SELECT * FROM keys\n");
+        sql.append("SELECT * FROM apiKeys\n");
         sql.append("WHERE keyid = ?");
         
         try {
@@ -177,7 +206,6 @@ public class DatabaseConnection {
             s.setLong(1, character.getCharacterID());
             s.setString(2, character.getName());
             s.execute();
-            con.commit();
         } catch (SQLException e) {
             log.log(Level.SEVERE, e.getMessage());
         } finally {
@@ -190,7 +218,7 @@ public class DatabaseConnection {
         connect();
         
         StringBuilder sql = new StringBuilder();
-        sql.append("INSERT INTO key_exposures (characterid, apiid)");
+        sql.append("INSERT INTO keyExposures (characterid, apiid)");
         sql.append("VALUES (");
         sql.append("?, ?").append(")");
         
@@ -199,7 +227,6 @@ public class DatabaseConnection {
             s.setLong(1, characterID);
             s.setLong(2, keyID);
             s.execute();
-            con.commit();
         } catch (SQLException e) {
             log.log(Level.SEVERE, e.getMessage());
         } finally {
@@ -243,7 +270,7 @@ public class DatabaseConnection {
         
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT k.keyid, MAX(accessMask)\n");
-        sql.append("FROM key_exposures e, keys k\n");
+        sql.append("FROM keyExposures e, apiKeys k\n");
         sql.append("WHERE e.apiid = k.keyid\n");
         sql.append("AND e.characterid = ?\n");
         sql.append("GROUP BY k.keyID");
@@ -275,7 +302,7 @@ public class DatabaseConnection {
 
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT c.name, characterid\n");
-        sql.append("FROM key_exposures e INNER JOIN characters c\n");
+        sql.append("FROM keyExposures e INNER JOIN characters c\n");
         sql.append("USING(characterid)\n");
         sql.append("WHERE e.apiid = ?\n");
         
@@ -310,7 +337,7 @@ public class DatabaseConnection {
 
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT k.keyid, k.vcode, k.accessmask, k.expiry\n");
-        sql.append("FROM key_exposures e, keys k\n");
+        sql.append("FROM keyExposures e, apiKeys k\n");
         sql.append("WHERE e.apiid = k.keyid\n");
         sql.append("AND e.characterid = ?\n");
         

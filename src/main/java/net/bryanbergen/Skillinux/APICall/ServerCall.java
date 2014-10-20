@@ -11,14 +11,16 @@ package net.bryanbergen.Skillinux.APICall;
  */
 public enum ServerCall {
     
-    ServerStatus("Server/ServerStatus", "Current Tranquility status and online player count.");
+    ServerStatus("Server/ServerStatus", "Current Tranquility status and online player count.", 3000L);
     
     private final String url;
     private final String description;
+    private final long cacheTime;
     
-    private ServerCall(String url, String description) {
+    private ServerCall(String url, String description, long cacheTime) {
         this.url = url;
         this.description = description;
+        this.cacheTime = cacheTime;
     }
     
     public String getUrl() {
@@ -27,5 +29,9 @@ public enum ServerCall {
     
     public String getDescription() {
         return description;
+    }
+    
+    public long getCacheTime() {
+        return cacheTime;
     }
 }

@@ -11,21 +11,23 @@ package net.bryanbergen.Skillinux.APICall;
  */
 public enum CharacterCall {
     
-    AccountBalance("Char/AccountBalance", 1L, "Isk balance of character."),
-    CharacterSheet("Char/CharacterSheet", 8L, "Attributes related to character."),
-    SkillInTraining("Char/SkillInTraining", 131072L, "Skill the character is currently training."),
-    SkillQueue("Char/Skillqueue", 262144L, "Skill queue of the character."),
-    WalletJournal("Char/WalletJournal", 2097152L, "List of journal transactions for character."),
-    WalletTransactions("Char/WalletTransactions", 4194304L, "List of market transactions for character");
+    AccountBalance("Char/AccountBalance", 1L, "Isk balance of character.", 15000L),
+    CharacterSheet("Char/CharacterSheet", 8L, "Attributes related to character.", 60000L),
+    SkillInTraining("Char/SkillInTraining", 131072L, "Skill the character is currently training.", 60000L),
+    SkillQueue("Char/Skillqueue", 262144L, "Skill queue of the character.", 60000L),
+    WalletJournal("Char/WalletJournal", 2097152L, "List of journal transactions for character.", 30000L),
+    WalletTransactions("Char/WalletTransactions", 4194304L, "List of market transactions for character", 30000L);
     
     private final String url;
     private final String description;
     private final long accessMask;
+    private final long cacheTime;
     
-    private CharacterCall(String url, long accessMask, String description ) {
+    private CharacterCall(String url, long accessMask, String description, long cacheTime ) {
         this.url = url;
         this.accessMask = accessMask;
         this.description = description;
+        this.cacheTime = cacheTime;
     }
     
     public String getUrl() {
@@ -38,5 +40,9 @@ public enum CharacterCall {
     
     public long getAccessMask() {
         return accessMask;
+    }
+    
+    public long getCacheTime() {
+        return cacheTime;
     }
 }
