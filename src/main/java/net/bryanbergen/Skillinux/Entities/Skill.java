@@ -1,6 +1,8 @@
 package net.bryanbergen.Skillinux.Entities;
 
 import java.util.Calendar;
+import net.bryanbergen.Skillinux.Util.CalendarUtil;
+import static net.bryanbergen.Skillinux.Util.CalendarUtil.STANDARD;
 
 public class Skill {
 
@@ -91,6 +93,16 @@ public class Skill {
         api.append("TypeID=").append(typeID);
         api.append(",Name=").append(name);
         api.append(",Description=").append(description);
+        api.append("\n");
+        api.append("Training Start Time: ").append(CalendarUtil.getFormattedDate(STANDARD, trainingStartTime));
+        api.append("\n");
+        api.append("Training End Time: ").append(CalendarUtil.getFormattedDate(STANDARD, trainingEndTime));
+        api.append("\n");
+        api.append("Training Start SP: ").append(trainingStartSP);
+        api.append("\n");
+        api.append("Training Destination SP: ").append(trainingDestinationSP);
+        api.append("\n");
+        api.append("Training to Level: ").append(trainingToLevel);
         return api.toString();
     }
 }

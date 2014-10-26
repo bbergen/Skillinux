@@ -1,11 +1,16 @@
 package net.bryanbergen.Skillinux.Util;
 
 import java.sql.Date;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 public class CalendarUtil {
 
+    public static final String STANDARD = "yyyy-MM-dd hh:mm:ss";
+    
     /**
      * Returns a formatted date string.
      * 
@@ -44,5 +49,22 @@ public class CalendarUtil {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(date.getTime());
         return cal;
+    }
+    
+    /**
+     * Converts a <code>String</code> to a usable <code>Calendar</code> object.
+     * 
+     * @param date The <code>String</code> to be parsed.
+     * @param df <code>SimpleDateFormat</code> or other to parse <code>date</code>.
+     * @return A usable <code>Calendar</code> object.
+     */
+    public static Calendar getDateFromString(String date, DateFormat df) {
+        Calendar c = new GregorianCalendar();
+        try {
+            c.setTime(df.parse(date));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return c;
     }
 }

@@ -1,6 +1,7 @@
 package net.bryanbergen.Skillinux.XMLParser;
 
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import net.bryanbergen.Skillinux.Database.DatabaseConnection;
 import net.bryanbergen.Skillinux.Entities.API;
 import net.bryanbergen.Skillinux.Entities.EveCharacter;
 import net.bryanbergen.Skillinux.Entities.Skill;
+import net.bryanbergen.Skillinux.Util.CalendarUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -34,6 +36,7 @@ public class Parser {
     private Map<String, String> serverCache;
     private Map<String, String> characterCache;
     private Map<String, String> accountCache;
+    private Map<String, Map<String, String>> cachePool;
     
     public Parser() {
     }
@@ -62,6 +65,10 @@ public class Parser {
         return api;
     }
     
+    ////////////////////////////////////////////////////////////////////////////
+    /////                     ACCOUNT CALL API METHODS                     /////
+    ////////////////////////////////////////////////////////////////////////////
+    
     public List<EveCharacter> getCharacters() {
         Document xmlDoc = caller.getAccountDocument(api, AccountCall.Characters);
         //TODO parsing logic on xmlDoc
@@ -80,6 +87,10 @@ public class Parser {
         return false;
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    /////                   CHARACTER CALL API METHODS                     /////
+    ////////////////////////////////////////////////////////////////////////////
+    
     /**
      * Returns the raw balance of an <code>EveCharacter</code>'s wallet balance.
      * Throws <code>IllegalStateException</code> if <code>Parser</code> not 
@@ -119,10 +130,23 @@ public class Parser {
                 "trainingDestinationSP",
                 "trainingToLevel");
         
-        Node typeIdNode = nodeMap.get("trainingTypeID");
-        int typeId = Integer.parseInt(typeIdNode.getLastChild().getTextContent());
+        // Fetch Cooresponding skill from database
+        int typeId = Integer.parseInt(getValueFromNode(nodeMap.get("trainingTypeID")));
         Skill skill = DatabaseConnection.getInstance().getSkill(typeId);
-        //TODO parse dates, SP amounts to add to skill
+        
+        // Populate Skill based on xml
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        Node trainingStart = nodeMap.get("trainingStartTime");
+        skill.setTrainingStartTime(CalendarUtil.getDateFromString(getValueFromNode(trainingStart), format));
+        Node trainingEnd = nodeMap.get("trainingEndTime");
+        skill.setTrainingEndTime(CalendarUtil.getDateFromString(getValueFromNode(trainingEnd), format));
+        Node trainingStartSP = nodeMap.get("trainingStartSP");
+        skill.setTrainingStartSP(Integer.parseInt(getValueFromNode(trainingStartSP)));
+        Node trainingDestinationSP = nodeMap.get("trainingDestinationSP");
+        skill.setTrainingDestinationSP(Integer.parseInt(getValueFromNode(trainingDestinationSP)));
+        Node trainingToLevel = nodeMap.get("trainingToLevel");
+        skill.setTrainingToLevel(Integer.parseInt(getValueFromNode(trainingToLevel)));
+
         return skill;
     }
     
@@ -132,6 +156,10 @@ public class Parser {
         return null;
     }
     
+    ////////////////////////////////////////////////////////////////////////////
+    /////                     SERVER CALL API METHODS                      /////
+    ////////////////////////////////////////////////////////////////////////////
+
     /**
      * Query the API server for the status of Tranquility
      * 
@@ -155,6 +183,10 @@ public class Parser {
         }
         return Integer.parseInt(serverCache.get(ONLINE_PLAYERS));
     }
+    
+    ////////////////////////////////////////////////////////////////////////////
+    /////                       END OF API METHODS                         /////
+    ////////////////////////////////////////////////////////////////////////////
     
     private void cacheWalletBalance() {
         Document xmlDoc = caller.getCharacterDocument(character, CharacterCall.AccountBalance);
@@ -272,6 +304,10 @@ public class Parser {
             }
         }
         return value;
+    }
+    
+    private String getValueFromNode(Node node) {
+        return node.getLastChild().getTextContent();
     }
     
     
