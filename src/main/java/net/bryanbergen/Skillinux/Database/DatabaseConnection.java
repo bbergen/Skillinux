@@ -18,9 +18,9 @@ public class DatabaseConnection {
 
     private static final String USER_NAME = "skillinux";
     private static final String PASSWORD = "skillinux";
-//    private static final String HOST_ORACLE =  "jdbc:oracle:thin:@192.168.1.2:1521:xe";
+    private static final String HOST_ORACLE =  "jdbc:oracle:thin:@192.168.1.2:1521:xe";
     private static final String HOST_MYSQL = "jdbc:mysql://localhost/skx";
-//    private static final String DRIVER_ORACLE = "oracle.jdbc.driver.OracleDriver";
+    private static final String DRIVER_ORACLE = "oracle.jdbc.driver.OracleDriver";
     private static final String DRIVER_MYSQL = "com.mysql.jdbc.Driver";
 
     private static DatabaseConnection instance;

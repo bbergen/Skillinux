@@ -1,11 +1,14 @@
 package net.bryanbergen.Skillinux;
 
-import net.bryanbergen.Skillinux.Database.DatabaseConnection;
+import net.bryanbergen.Skillinux.Entities.DemoCharacter;
+import net.bryanbergen.Skillinux.XMLParser.Parser;
 
 public class Skillinux {
 
     public static void main(String[] args) {
         
-        System.out.println(DatabaseConnection.getInstance().getSkill(2505));
+        Parser parser = new Parser(new DemoCharacter());
+        System.out.println(parser.getFormattedWalletBalance());
+        System.out.println(parser.getSkillInTraining());
     }
 }

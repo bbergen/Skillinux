@@ -10,6 +10,7 @@ import net.bryanbergen.Skillinux.APICall.AccountCall;
 import net.bryanbergen.Skillinux.APICall.ApiCall;
 import net.bryanbergen.Skillinux.APICall.CharacterCall;
 import net.bryanbergen.Skillinux.APICall.ServerCall;
+import net.bryanbergen.Skillinux.Database.DatabaseConnection;
 import net.bryanbergen.Skillinux.Entities.API;
 import net.bryanbergen.Skillinux.Entities.EveCharacter;
 import net.bryanbergen.Skillinux.Entities.Skill;
@@ -25,14 +26,14 @@ public class Parser {
     private static final String SERVER_OPEN = "serverOpen";
     private static final String BALANCE = "balance";
     private static final String CACHE_TIME = "cacheTime";
+    private static final String WALLET_BALANCE = "walletBalance";
     
     private final ApiCall caller = ApiCall.getInstance();
     private API api;
     private EveCharacter character;
-    private Map<String, String> serverResultCache;
-    private Map<String, String> characterResultCache;
-    private Map<String, String> accountResultCache;
-    private boolean serverStatusCached;
+    private Map<String, String> serverCache;
+    private Map<String, String> characterCache;
+    private Map<String, String> accountCache;
     
     public Parser() {
     }
@@ -90,11 +91,17 @@ public class Parser {
         if (character == null) {
             throw new IllegalStateException("Parser must be created with an Eve Character for CharacterCalls.");
         }
-        Document xmlDoc = caller.getCharacterDocument(character, CharacterCall.AccountBalance);
-        String value = getAttributeValueByName(xmlDoc.getChildNodes(), BALANCE);
-        return Double.parseDouble(value);
+        if (refreshCharacterCache(CharacterCall.AccountBalance)) {
+            cacheWalletBalance();
+        }
+        return Double.parseDouble(characterCache.get(WALLET_BALANCE));
     }
     
+    /**
+     * Returns the balance of an <code>EveCharacter</code>'s wallet balance.
+     * 
+     * @return Wallet balance as a formatted String.
+     */
     public String getFormattedWalletBalance() {
         NumberFormat formatter = NumberFormat.getCurrencyInstance();
         return formatter.format(getWalletBalance());
@@ -102,8 +109,21 @@ public class Parser {
     
     public Skill getSkillInTraining() {
         Document xmlDoc = caller.getCharacterDocument(character, CharacterCall.SkillInTraining);
-        //TODO parse xmlDoc for skill in training
-        return null;
+        NodeList nodes = xmlDoc.getDocumentElement().getChildNodes();
+        
+        Map<String, Node> nodeMap = getNodesByName(nodes,
+                "trainingEndTime",
+                "trainingStartTime",
+                "trainingTypeID",
+                "trainingStartSP",
+                "trainingDestinationSP",
+                "trainingToLevel");
+        
+        Node typeIdNode = nodeMap.get("trainingTypeID");
+        int typeId = Integer.parseInt(typeIdNode.getLastChild().getTextContent());
+        Skill skill = DatabaseConnection.getInstance().getSkill(typeId);
+        //TODO parse dates, SP amounts to add to skill
+        return skill;
     }
     
     public Skill getSkillQueue() {
@@ -118,10 +138,10 @@ public class Parser {
      * @return True if Tranquility is online, false otherwise. 
      */
     public boolean isTranquilityOnline() {
-        if (updateServerCache(serverResultCache, ServerCall.ServerStatus)) {
+        if (updateServerCache(ServerCall.ServerStatus)) {
             cacheServerStatus();
         }
-        return Boolean.valueOf(serverResultCache.get(SERVER_OPEN));
+        return Boolean.valueOf(serverCache.get(SERVER_OPEN));
     }
     
     /**
@@ -130,10 +150,22 @@ public class Parser {
      * @return Number of players online on Tranquility.
      */
     public int getActivePlayerCount() {
-        if (updateServerCache(serverResultCache, ServerCall.ServerStatus)) {
+        if (updateServerCache(ServerCall.ServerStatus)) {
             cacheServerStatus();
         }
-        return Integer.parseInt(serverResultCache.get(ONLINE_PLAYERS));
+        return Integer.parseInt(serverCache.get(ONLINE_PLAYERS));
+    }
+    
+    private void cacheWalletBalance() {
+        Document xmlDoc = caller.getCharacterDocument(character, CharacterCall.AccountBalance);
+        String value = getAttributeValueByName(xmlDoc.getChildNodes(), BALANCE);
+        
+        if (characterCache == null) {
+            characterCache = new HashMap<String, String>();
+        }
+        
+        characterCache.put(CACHE_TIME, System.currentTimeMillis() + "");
+        characterCache.put(WALLET_BALANCE, value);
     }
     
     private void cacheServerStatus() {
@@ -142,39 +174,38 @@ public class Parser {
         Node playerCount = getNodeByName(nodes, ONLINE_PLAYERS);
         Node serverOpen = getNodeByName(nodes, SERVER_OPEN);
         
-        if (serverResultCache == null) {
-            serverResultCache = new HashMap<String, String>();
+        if (serverCache == null) {
+            serverCache = new HashMap<String, String>();
         }
         
-        serverResultCache.put(CACHE_TIME, System.currentTimeMillis() + "");
-        serverResultCache.put(ONLINE_PLAYERS, playerCount.getLastChild().getTextContent());
-        serverResultCache.put(SERVER_OPEN, serverOpen.getLastChild().getTextContent());
-        serverStatusCached = true;
+        serverCache.put(CACHE_TIME, System.currentTimeMillis() + "");
+        serverCache.put(ONLINE_PLAYERS, playerCount.getLastChild().getTextContent());
+        serverCache.put(SERVER_OPEN, serverOpen.getLastChild().getTextContent());
     }
     
-    private boolean updateServerCache(Map<String, String> cache, ServerCall callType) {
-        if (cache == null) {
+    private boolean updateServerCache(ServerCall callType) {
+        if (serverCache == null) {
             return true;
         }
-        long lastCache = Long.parseLong(cache.get(CACHE_TIME));
+        long lastCache = Long.parseLong(serverCache.get(CACHE_TIME));
         long now = System.currentTimeMillis();
         return now - lastCache > callType.getCacheTime();
     }
     
-    private boolean refreshCharacterCache(Map<String, String> cache, CharacterCall callType) {
-        if (cache == null) {
+    private boolean refreshCharacterCache(CharacterCall callType) {
+        if (characterCache == null) {
             return true;
         }
-        long lastCache = Long.parseLong(cache.get(CACHE_TIME));
+        long lastCache = Long.parseLong(characterCache.get(CACHE_TIME));
         long now = System.currentTimeMillis();
         return now - lastCache > callType.getCacheTime();
     }
     
-    private boolean refreshAccountCache(Map<String, String> cache, AccountCall callType) {
-        if (cache == null) {
+    private boolean refreshAccountCache(AccountCall callType) {
+        if (accountCache == null) {
             return true;
         }
-        long lastCache = Long.parseLong(cache.get(CACHE_TIME));
+        long lastCache = Long.parseLong(accountCache.get(CACHE_TIME));
         long now = System.currentTimeMillis();
         return now - lastCache > callType.getCacheTime();
     }
@@ -206,6 +237,14 @@ public class Parser {
             }
         }
         return n;
+    }
+    
+    private Map<String, Node> getNodesByName(NodeList nodes, String... keys) {
+        Map<String, Node> nodeMap = new HashMap<String, Node>();
+        for (String key : keys) {
+            nodeMap.put(key, getNodeByName(nodes, key));
+        }
+        return nodeMap;
     }
     
     private String getAttributeValueByName(NodeList nodeList, String name) {
